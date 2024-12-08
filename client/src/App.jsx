@@ -1,16 +1,24 @@
 import "./App.css"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
+import { io } from "https://cdn.socket.io/4.8.1/socket.io.esm.min.js";
 
 const App = () => {
-  const socket = new WebSocket("ws://localhost:3001")
+  const socket = io("ws://localhost:3000")
   const inputRef = useRef(null)
 
   const [message, setMessage] = useState("")
   const [messages, setMessages] = useState([])
 
-  if (inputRef.current) {
-    inputRef.current.focus()
-  }
+  useEffect(() => {
+    socket.on("message", (data) => {
+      setMessages(prev => [...prev, data])
+    })
+
+    return () => {
+      socket.off("message")
+    }
+  }, [])
+  
 
 
   const sendMessage = (e) => {
@@ -18,10 +26,13 @@ const App = () => {
 
     
     if (message) {
-      socket.send(message)
+      socket.emit("message", message)
       console.log(message);
-      setMessages(prev => [...prev, message])
       setMessage("")
+    }
+
+    if (inputRef.current) {
+      inputRef.current.focus()
     }
 
 
