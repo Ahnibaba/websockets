@@ -10,14 +10,32 @@ const App = () => {
 
   const [message, setMessage] = useState("")
   const [messages, setMessages] = useState([])
+  const [typing, setTyping] = useState("")
 
   useEffect(() => {
     socket.on("message", (data) => {
+      setTyping("")
       setMessages(prev => [...prev, data])
+      
+    })
+
+    let activityTimer
+   
+
+    socket.on("activity", (name) => {
+      setTyping(`${name} is typing...`)
+
+      //clear after 2 seconds
+      clearTimeout(activityTimer)
+      activityTimer = setTimeout(() => {
+        setTyping("")
+      }, 2000);
+      
     })
 
     return () => {
       socket.off("message")
+      
     }
   }, [])
   
@@ -25,7 +43,6 @@ const App = () => {
 
   const sendMessage = (e) => {
     e.preventDefault()
-
     
     if (message) {
       socket.emit("message", message)
@@ -33,18 +50,23 @@ const App = () => {
       setMessage("")
     }
 
+
     if (inputRef.current) {
       inputRef.current.focus()
     }
 
-
-
-
   }
+
+  const handleChange = (e) => {
+    setMessage(e.target.value)
+    socket.emit("activity") 
+  }
+
+
   return (
     <div>
       <form onSubmit={sendMessage}>
-        <input value={message} ref={inputRef} onChange={e => setMessage(e.target.value)} type="text" placeholder="Your Message" />
+        <input value={message} ref={inputRef} onChange={handleChange} type="text" placeholder="Your Message" />
         <button>Send</button>
       </form>
       <ul>
@@ -52,6 +74,7 @@ const App = () => {
           <li key={index}>{eachMessage}</li>
         ))}
       </ul>
+      <p>{typing}</p>
     </div>
   )
 }
